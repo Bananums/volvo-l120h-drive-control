@@ -4,6 +4,75 @@
 #include "config_io.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+#include "memory.h"
+
+#pragma pack(push, 1) // Disable padding
+typedef struct {
+    uint8_t heartbeat{0};
+    uint8_t function_request{0};
+    float steering{0};
+    float throttle{0};
+    float tilt{0};
+    float lift{0};
+} CommandPayload;
+#pragma pack(pop)
+
+#pragma pack(push, 1) // Disable padding
+typedef struct {
+    uint8_t heartbeat{0};
+    uint8_t gear{0};
+    uint8_t event{0};
+    float speed{0};
+    float throttle{0};
+    float brake{0};
+    float lift{0};
+} FeedbackPayload;
+#pragma pack(pop)
+
+CommandPayload command;
+FeedbackPayload feedback;
+QueueHandle_t feedback_queue;
+
+void uart_receiver_task(void *arg) {
+    uint8_t rx_buffer[sizeof(CommandPayload)];
+
+    while (1) {
+        const int len = uart_read_bytes(UART_NUM_2, rx_buffer, sizeof(CommandPayload), pdMS_TO_TICKS(10));
+        if (len == sizeof(CommandPayload)) {
+            memcpy(&command, rx_buffer, sizeof(CommandPayload));
+        }
+        vTaskDelay(pdMS_TO_TICKS(1)); // Prevent CPU hogging
+    }
+}
+
+
+void control_logic_task(void *arg) {
+    while (1) {
+        if (command.function_request == 1) {
+
+            gpio_set_level(GPIO_NUM_2, 1);
+        }
+
+        feedback.heartbeat = command.heartbeat;
+        //TODO(Bananums) do rest of control logic
+
+        xQueueOverwrite(feedback_queue, &feedback);
+
+        vTaskDelay(pdMS_TO_TICKS(10));
+    }
+}
+
+void uart_transmitter_task(void *arg) {
+    FeedbackPayload feedback;
+
+    while (1) {
+        if (xQueueReceive(feedback_queue, &feedback, pdMS_TO_TICKS(10)) == pdTRUE) {
+            uart_write_bytes(UART_NUM_2, &feedback, sizeof(FeedbackPayload));
+        }
+    }
+}
+
+
 
 void app_main() {
 
