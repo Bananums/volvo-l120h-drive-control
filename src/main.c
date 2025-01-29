@@ -1,80 +1,52 @@
 //Created by Bananums: https://github.com/Bananums
 
 #include <stdio.h>
-#include "config_io.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "memory.h"
 
-#pragma pack(push, 1) // Disable padding
+#include "config_io.h"
+
+void startup_led_blink() {
+    bool led_on = true;
+    for (int i = 0; i < 10; i++) {
+        gpio_set_level(LED_PIN, led_on);
+        vTaskDelay(pdMS_TO_TICKS(250));
+        led_on = !led_on;
+    }
+    gpio_set_level(LED_PIN, false);
+}
+
 typedef struct {
-    uint8_t heartbeat{0};
-    uint8_t function_request{0};
-    float steering{0};
-    float throttle{0};
-    float tilt{0};
-    float lift{0};
-} CommandPayload;
-#pragma pack(pop)
+    uart_port_t uart_num;
+    size_t buffer_size;
+} ReadTaskParams;
 
-#pragma pack(push, 1) // Disable padding
-typedef struct {
-    uint8_t heartbeat{0};
-    uint8_t gear{0};
-    uint8_t event{0};
-    float speed{0};
-    float throttle{0};
-    float brake{0};
-    float lift{0};
-} FeedbackPayload;
-#pragma pack(pop)
+void uart_read_task(void *arg) {
+    ReadTaskParams params = *(ReadTaskParams *)arg;
+    uart_port_t uart_num = params.uart_num;
+    size_t buffer_size = params.buffer_size;
 
-CommandPayload command;
-FeedbackPayload feedback;
-QueueHandle_t feedback_queue;
-
-void uart_receiver_task(void *arg) {
-    uint8_t rx_buffer[sizeof(CommandPayload)];
+    uint8_t data[buffer_size];
 
     while (1) {
-        const int len = uart_read_bytes(UART_NUM_2, rx_buffer, sizeof(CommandPayload), pdMS_TO_TICKS(10));
-        if (len == sizeof(CommandPayload)) {
-            memcpy(&command, rx_buffer, sizeof(CommandPayload));
-        }
-        vTaskDelay(pdMS_TO_TICKS(1)); // Prevent CPU hogging
-    }
-}
-
-
-void control_logic_task(void *arg) {
-    while (1) {
-        if (command.function_request == 1) {
-
-            gpio_set_level(GPIO_NUM_2, 1);
-        }
-
-        feedback.heartbeat = command.heartbeat;
-        //TODO(Bananums) do rest of control logic
-
-        xQueueOverwrite(feedback_queue, &feedback);
-
-        vTaskDelay(pdMS_TO_TICKS(10));
-    }
-}
-
-void uart_transmitter_task(void *arg) {
-    FeedbackPayload feedback;
-
-    while (1) {
-        if (xQueueReceive(feedback_queue, &feedback, pdMS_TO_TICKS(10)) == pdTRUE) {
-            uart_write_bytes(UART_NUM_2, &feedback, sizeof(FeedbackPayload));
+        int len = uart_read_bytes(uart_num, data, buffer_size, pdMS_TO_TICKS(10));
+        if (len > 0) {
+            printf("Received: %.*s\n", len, data);
+            printf("Hex Dump: ");
+            for (int i = 0; i < len; i++) {
+                printf("%02X ", data[i]);
+            }
+            printf("\n");
         }
     }
 }
-
-
 
 void app_main() {
+    const uart_port_t uart_port = UART_NUM_2;
+    const gpio_num_t TX_PIN = GPIO_NUM_17;
+    const gpio_num_t RX_PIN = GPIO_NUM_16;
+    const size_t buffer_size = 1024;
 
     static const uart_config_t UART_CONF = {
         .baud_rate = 115200,
@@ -84,41 +56,22 @@ void app_main() {
         .flow_ctrl = UART_HW_FLOWCTRL_DISABLE,
     };
 
-    const uint16_t TX_PIN = GPIO_NUM_17;
-    const uint16_t RX_PIN = GPIO_NUM_16;
-    const uint16_t UART_PORT_2 = UART_NUM_2;
-    const uint16_t BUF_SIZE = 1024;
-    uart_param_config(UART_PORT_2, &UART_CONF);
+    // Configure GPIO
     gpio_config(&ONBOARD_LED_GPIO_CONF);
 
+    // Configure UART
+    uart_param_config(uart_port, &UART_CONF);
+    uart_driver_install(uart_port, buffer_size * 2, 0, 0, NULL, 0);
+    uart_set_pin(uart_port, TX_PIN, RX_PIN, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
 
-    uart_driver_install(UART_PORT_2, BUF_SIZE * 2, 0, 0, NULL, 0);
-    uart_set_pin(UART_PORT_2, TX_PIN, RX_PIN, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
+    startup_led_blink();
 
-    uint8_t data[BUF_SIZE];
-
-    bool led_on = true;
-    for (int i = 0; i < 10; i++) {
-        gpio_set_level(LED_PIN, led_on);
-        vTaskDelay(pdMS_TO_TICKS(250));
-        led_on = !led_on;
-    }
-    gpio_set_level(LED_PIN, false);
+    // Allocate memory for struct and set parameters
+    ReadTaskParams task_params = {
+    .uart_num = uart_port,
+    .buffer_size = buffer_size
+    };
 
     printf("UART listening on GPIO RX=%d TX=%d...\n", RX_PIN, TX_PIN);
-
-    while (1) {
-        // Read data from UART2
-        int len = uart_read_bytes(UART_PORT_2, data, BUF_SIZE, pdMS_TO_TICKS(1000));
-        if (len > 0) {
-            // Print the received data in both string and hex format
-            printf("Received: %.*s\n", len, data);
-            printf("Received %d bytes: %.*s\n", len, len, data);
-            printf("Hex Dump: ");
-            for (int i = 0; i < len; i++) {
-                printf("%02X ", data[i]);
-            }
-            printf("\n");
-        }
-    }
+    xTaskCreate(uart_read_task, "UART_RX_Task", 4096, &task_params, 5, NULL);
 }
