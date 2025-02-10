@@ -46,42 +46,15 @@ void uart_read_task(void *arg) {
 
     CommandPayload payload;
     while (1) {
-
-       // uint8_t byte;
-       // if (uart_read_bytes(uart_num, &byte, 1, pdMS_TO_TICKS(10)) > 0) {
-       //     NannersProcessBytes(byte);
-       //     NannersFrame frame;
-       //     if (NannersGetFrame(&frame)) {
-       //         //ProcessMessage(frame.frame_id, frame.payload, frame.length);l
-       //     }
-       // }
-
-        int len = uart_read_bytes(
-            uart_num,
-            data + bytes_received,
-            payload_size - bytes_received,
-            pdMS_TO_TICKS(10)
-        );
-
-        //nanners_process_byte(data);
-        if (len > 0) {
-            bytes_received += len;
-            if (bytes_received == payload_size) {
-
-                printf("Hex Dump: ");
-                for (int i = 0; i < payload_size; i++) {
-                    printf("%02X ", data[i]);
-                }
-                printf("\n");
-                memcpy(&payload, data, payload_size); // Copy data into struct
-                printf("Received CommandPayload:\n");
-                printf("Heartbeat: %d\n", payload.heartbeat);
-                printf("Function Request: %d\n", payload.function_request);
-                printf("Steering: %.2f\n", payload.steering);
-                printf("Throttle: %.2f\n", payload.throttle);
-                printf("Tilt: %.2f\n", payload.tilt);
-                printf("Lift: %.2f\n", payload.lift);
-                bytes_received = 0;
+        uint8_t byte;
+        if (uart_read_bytes(uart_num, &byte, 1, pdMS_TO_TICKS(10))) { //TODO add ringbuffer apporach. instead of reading one byte each 10ms.
+            printf("Hex Dump: ");
+            printf("%02X ", byte);
+            printf("\n");
+            NannersProcessBytes(byte);
+            NannersFrame frame;
+            if (NannersGetFrame(&frame)) {
+                //ProcessMessage(frame.frame_id, frame.payload, frame.length);l
             }
         }
     }
