@@ -7,6 +7,34 @@
 
 #include "config_io.h"
 
+typedef struct __attribute__((packed)) {
+    uint8_t heartbeat;
+    uint8_t function_request;
+    float steering;
+    float throttle;
+    float tilt;
+    float lift;
+} CommandPayload;
+
+typedef struct __attribute__((packed)) {
+    uint8_t heartbeat;
+    float steering;
+    float throttle;
+} DrivePayload;
+
+
+typedef struct __attribute__((packed)) {
+    uint8_t heartbeat;
+    float tilt;
+    float lift;
+} ToolPayload;
+
+
+typedef struct __attribute__((packed)) {
+    uint8_t heartbeat;
+    uint8_t function_request;
+} FunctionPayload;
+
 void startup_led_blink() {
     bool led_on = true;
     for (int i = 0; i < 10; i++) {
@@ -23,21 +51,40 @@ typedef struct {
 } ReadTaskParams;
 
 void uart_read_task(void *arg) {
-    ReadTaskParams params = *(ReadTaskParams *)arg;
+    ReadTaskParams params = *(ReadTaskParams *) arg;
     uart_port_t uart_num = params.uart_num;
-    size_t buffer_size = params.buffer_size;
+    //size_t buffer_size = params.buffer_size;
+    size_t payload_size = sizeof(CommandPayload);
+    uint8_t data[payload_size];
+    size_t bytes_received = 0;
 
-    uint8_t data[buffer_size];
-
+    CommandPayload payload;
     while (1) {
-        int len = uart_read_bytes(uart_num, data, buffer_size, pdMS_TO_TICKS(10));
+        int len = uart_read_bytes(
+            uart_num,
+            data + bytes_received,
+            payload_size - bytes_received,
+            pdMS_TO_TICKS(10)
+        );
         if (len > 0) {
-            printf("Received: %.*s\n", len, data);
-            printf("Hex Dump: ");
-            for (int i = 0; i < len; i++) {
-                printf("%02X ", data[i]);
+            bytes_received += len;
+            if (bytes_received == payload_size) {
+
+                printf("Hex Dump: ");
+                for (int i = 0; i < payload_size; i++) {
+                    printf("%02X ", data[i]);
+                }
+                printf("\n");
+                memcpy(&payload, data, payload_size); // Copy data into struct
+                printf("Received CommandPayload:\n");
+                printf("Heartbeat: %d\n", payload.heartbeat);
+                printf("Function Request: %d\n", payload.function_request);
+                printf("Steering: %.2f\n", payload.steering);
+                printf("Throttle: %.2f\n", payload.throttle);
+                printf("Tilt: %.2f\n", payload.tilt);
+                printf("Lift: %.2f\n", payload.lift);
+                bytes_received = 0;
             }
-            printf("\n");
         }
     }
 }
@@ -46,7 +93,7 @@ void app_main() {
     const uart_port_t uart_port = UART_NUM_2;
     const gpio_num_t TX_PIN = GPIO_NUM_17;
     const gpio_num_t RX_PIN = GPIO_NUM_16;
-    const size_t buffer_size = 1024;
+    const int16_t buffer_size = 1024;
 
     static const uart_config_t UART_CONF = {
         .baud_rate = 115200,
@@ -68,8 +115,8 @@ void app_main() {
 
     // Allocate memory for struct and set parameters
     ReadTaskParams task_params = {
-    .uart_num = uart_port,
-    .buffer_size = buffer_size
+        .uart_num = uart_port,
+        .buffer_size = buffer_size
     };
 
     printf("UART listening on GPIO RX=%d TX=%d...\n", RX_PIN, TX_PIN);
