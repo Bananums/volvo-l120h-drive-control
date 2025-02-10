@@ -38,6 +38,6 @@ echo -n "YourData" > /dev/ttyUSB1
 
 * SOF (Start of Frame): 0xAA
 * Length: Number of bytes in the payload
-* Payload: Actual data
+* Payload: Actual data. Supports payloads up to 16 bytes
 * CRC (Cyclic Redundancy Check): 16-bit (CRC-16-CCITT)
 * EOF (End of Frame): 0x55 (optional if length and CRC are reliable)

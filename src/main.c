@@ -5,6 +5,10 @@
 #include "freertos/task.h"
 #include "memory.h"
 
+#include "nanners_protocol/nanners_protocol.h"
+#include "integration/enums.h"
+#include "integration/types.h"
+
 #include "config_io.h"
 
 typedef struct __attribute__((packed)) {
@@ -16,24 +20,6 @@ typedef struct __attribute__((packed)) {
     float lift;
 } CommandPayload;
 
-typedef struct __attribute__((packed)) {
-    uint8_t heartbeat;
-    float steering;
-    float throttle;
-} DrivePayload;
-
-
-typedef struct __attribute__((packed)) {
-    uint8_t heartbeat;
-    float tilt;
-    float lift;
-} ToolPayload;
-
-
-typedef struct __attribute__((packed)) {
-    uint8_t heartbeat;
-    uint8_t function_request;
-} FunctionPayload;
 
 void startup_led_blink() {
     bool led_on = true;
@@ -60,12 +46,24 @@ void uart_read_task(void *arg) {
 
     CommandPayload payload;
     while (1) {
+
+       // uint8_t byte;
+       // if (uart_read_bytes(uart_num, &byte, 1, pdMS_TO_TICKS(10)) > 0) {
+       //     NannersProcessBytes(byte);
+       //     NannersFrame frame;
+       //     if (NannersGetFrame(&frame)) {
+       //         //ProcessMessage(frame.frame_id, frame.payload, frame.length);l
+       //     }
+       // }
+
         int len = uart_read_bytes(
             uart_num,
             data + bytes_received,
             payload_size - bytes_received,
             pdMS_TO_TICKS(10)
         );
+
+        //nanners_process_byte(data);
         if (len > 0) {
             bytes_received += len;
             if (bytes_received == payload_size) {
@@ -90,6 +88,11 @@ void uart_read_task(void *arg) {
 }
 
 void app_main() {
+    static_assert(sizeof(DrivePayload) <= kMaxPayloadSize, "DrivePayload too large!");
+    static_assert(sizeof(ToolPayload) <= kMaxPayloadSize, "ToolPayload too large!");
+    static_assert(sizeof(FunctionPayload) <= kMaxPayloadSize, "FunctionPayload too large!");
+    static_assert(sizeof(FeedbackPayload) <= kMaxPayloadSize, "FeedbackPayload too large!");
+
     const uart_port_t uart_port = UART_NUM_2;
     const gpio_num_t TX_PIN = GPIO_NUM_17;
     const gpio_num_t RX_PIN = GPIO_NUM_16;
