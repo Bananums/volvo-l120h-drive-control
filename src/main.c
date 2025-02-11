@@ -48,12 +48,13 @@ void uart_read_task(void *arg) {
     while (1) {
         uint8_t byte;
         if (uart_read_bytes(uart_num, &byte, 1, pdMS_TO_TICKS(10))) { //TODO add ringbuffer apporach. instead of reading one byte each 10ms.
-            printf("Hex Dump: ");
-            printf("%02X ", byte);
-            printf("\n");
+            //printf("Hex Dump: ");
+            //printf("%02X ", byte);
+            //printf("\n");
             NannersProcessBytes(byte);
             NannersFrame frame;
             if (NannersGetFrame(&frame)) {
+                 printf("Frame Ready for processing\n");
                 //ProcessMessage(frame.frame_id, frame.payload, frame.length);l
             }
         }

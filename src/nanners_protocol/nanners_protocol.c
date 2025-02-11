@@ -2,7 +2,7 @@
 
 #include "nanners_protocol.h"
 #include <string.h>
-
+#include <stdio.h>
 
 static NannersFrame frame = {
     .state = WAIT_FOR_SOF,
@@ -18,14 +18,17 @@ void NannersProcessBytes(uint8_t byte) {
     switch (frame.state) {
         case WAIT_FOR_SOF:
             if (byte == kStartOfFrame) { // Start of Frame
-                frame.state = READ_FRAME_ID;
-                frame.index = 0;
+              printf("Received start of frame byte: %02X\n", byte);
+              frame.state = READ_FRAME_ID;
+              frame.index = 0;
             }
         break;
 
         case READ_FRAME_ID:
+            printf("Received frame id byte: %02X\n", byte);
             ((uint8_t*)&frame.frame_id)[frame.index++] = byte;
         if (frame.index == 2) {
+            printf("Received frame id %d\n", frame.frame_id);
             frame.state = READ_LENGTH;
             frame.index = 0;
         }
@@ -33,6 +36,7 @@ void NannersProcessBytes(uint8_t byte) {
 
         case READ_LENGTH:
             frame.length = byte;
+            printf("Received frame length %d\n", frame.length);
         if (frame.length > kMaxPayloadSize) {
             frame.state = WAIT_FOR_SOF; // Invalid length, reset
         } else {
@@ -43,6 +47,7 @@ void NannersProcessBytes(uint8_t byte) {
 
         case READ_PAYLOAD:
             frame.payload[frame.index++] = byte;
+            printf("Received frame payload %02X\n", byte);
         if (frame.index >= frame.length) {
             frame.state = READ_CRC;
             frame.index = 0;
@@ -51,14 +56,19 @@ void NannersProcessBytes(uint8_t byte) {
 
         case READ_CRC:
             ((uint8_t*)&frame.crc)[frame.index++] = byte;
+            printf("Received CRC byte %02X\n", byte);
         if (frame.index == 2) {
+              printf("Received CRC %u\n", frame.crc);
             frame.state = VERIFY_EOF;
+            frame.index = 0; //TODO Check if necessray to reset here
         }
         break;
 
         case VERIFY_EOF:
             if (byte == kEndOfFrame) { // End of Frame
-                //if (validate_crc(frame.payload, frame.length, frame.crc)) { //TODO
+                printf("Received end of frame byte %02X\n", byte);
+                //if (validate_crc(frame.payload, frame.length, frame.crc)) { //TODO add check
+                    //printf("Valid frame\n");
                     frame.valid = true;
                 //}
             }
