@@ -25,7 +25,7 @@ void NannersProcessBytes(uint8_t byte) {
         break;
 
         case READ_FRAME_ID:
-            printf("Received frame id byte: %02X\n", byte);
+            //printf("Received frame id byte: %02X\n", byte);
             ((uint8_t*)&frame.frame_id)[frame.index++] = byte;
         if (frame.index == 2) {
             printf("Received frame id %d\n", frame.frame_id);
@@ -47,7 +47,7 @@ void NannersProcessBytes(uint8_t byte) {
 
         case READ_PAYLOAD:
             frame.payload[frame.index++] = byte;
-            printf("Received frame payload %02X\n", byte);
+            //printf("Received frame payload %02X\n", byte);
         if (frame.index >= frame.length) {
             frame.state = READ_CRC;
             frame.index = 0;
@@ -56,7 +56,7 @@ void NannersProcessBytes(uint8_t byte) {
 
         case READ_CRC:
             ((uint8_t*)&frame.crc)[frame.index++] = byte;
-            printf("Received CRC byte %02X\n", byte);
+            //printf("Received CRC byte %02X\n", byte);
         if (frame.index == 2) {
               printf("Received CRC %u\n", frame.crc);
             frame.state = VERIFY_EOF;

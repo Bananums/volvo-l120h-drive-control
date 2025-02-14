@@ -44,18 +44,24 @@ void uart_read_task(void *arg) {
     uint8_t data[payload_size];
     size_t bytes_received = 0;
 
+    size_t uart_buffer_size = 64;
+    uint8_t uart_buffer[uart_buffer_size];
+
     CommandPayload payload;
+    uint8_t byte;
     while (1) {
-        uint8_t byte;
-        if (uart_read_bytes(uart_num, &byte, 1, pdMS_TO_TICKS(10))) { //TODO add ringbuffer apporach. instead of reading one byte each 10ms.
-            //printf("Hex Dump: ");
-            //printf("%02X ", byte);
-            //printf("\n");
-            NannersProcessBytes(byte);
-            NannersFrame frame;
-            if (NannersGetFrame(&frame)) {
-                 printf("Frame Ready for processing\n");
-                //ProcessMessage(frame.frame_id, frame.payload, frame.length);l
+
+        const int len = uart_read_bytes(uart_num, &uart_buffer, uart_buffer_size, pdMS_TO_TICKS(10));
+        if (len > 0) { //TODO add ringbuffer apporach. instead of reading one byte each 10ms.
+            printf("Received %d bytes\n", len);
+            for (int i = 0; i < len; i++) {
+                byte = uart_buffer[i];
+                NannersProcessBytes(byte);
+                NannersFrame frame;
+                if (NannersGetFrame(&frame)) {
+                    printf("Frame Ready for processing\n");
+                    //ProcessMessage(frame.frame_id, frame.payload, frame.length);l
+                }
             }
         }
     }
