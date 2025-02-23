@@ -28,4 +28,11 @@ typedef struct __attribute__((packed)) {
     float lift;
 } FeedbackPayload;
 
+typedef struct __attribute__((packed)) {
+    DrivePayload drive;
+    ToolPayload tool;
+    FunctionPayload function;
+    SemaphoreHandle_t semaphore_mutex;
+} SharedState;
+
 #endif //TYPES_H

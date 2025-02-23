@@ -23,20 +23,29 @@ void StartupLedBlink() {
     gpio_set_level(kLedPin, false);
 }
 
+void InitSharedState(SharedState *state) {
+    state->semaphore_mutex = xSemaphoreCreateMutex();
+}
+
 void StartTasks() {
     const uart_port_t uart_port = UART_NUM_2;
     const gpio_num_t TX_PIN = GPIO_NUM_17;
     const gpio_num_t RX_PIN = GPIO_NUM_16;
     const int16_t buffer_size = 1024;
     QueueHandle_t x_queue = xQueueCreate(10, sizeof(uint8_t));
+
     // Configure UART
     uart_param_config(uart_port, &UART_CONF);
     uart_driver_install(uart_port, buffer_size * 2, 0, 0, NULL, 0);
     uart_set_pin(uart_port, TX_PIN, RX_PIN, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
 
+    SharedState shared_state;
+    InitSharedState(&shared_state);
+
     ReadTaskParams task_params = {
         .uart_num = uart_port,
         .buffer_size = buffer_size,
+        .shared_state = &shared_state
     };
 
     WriteTaskParams write_task_params = {
@@ -45,7 +54,8 @@ void StartTasks() {
     };
 
     MainTaskParams main_task_params = {
-        .queue = x_queue
+        .queue = x_queue,
+        .shared_state = &shared_state
     };
 
     xTaskCreate(main_task, "main_task", 4096, &main_task_params, 2, NULL);

@@ -5,18 +5,9 @@
 
 #include "freertos/FreeRTOS.h"
 #include "driver/uart.h"
+#include "task_params.h"
 
-// Struct for passing parameters to uart_read_task
-typedef struct {
-    uart_port_t uart_num;
-    size_t buffer_size;
-} ReadTaskParams;
 
-// Struct for passing parameters to uart_write_task
-typedef struct {
-    uart_port_t uart_port;
-    QueueHandle_t queue;
-} WriteTaskParams;
 
 void uart_read_task(void *arg);
 void uart_write_task(void *arg);

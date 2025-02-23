@@ -7,9 +7,7 @@
 #include "freertos/FreeRTOS.h"
 #include "driver/uart.h"
 
-typedef struct {
-    QueueHandle_t queue;
-} MainTaskParams;
+#include "task_params.h"
 
 void main_task(void *arg);
 
