@@ -35,7 +35,7 @@ void uart_read_task(void *arg) {
                 }
             }
         }
-        steering = steering + 0.025f;
+        steering = steering + 0.025f;  //TODO implement actual use in ProcessMessage
         drive_payload.steering = steering;
         UpdateDriveState(shared_state, &drive_payload);
     }
