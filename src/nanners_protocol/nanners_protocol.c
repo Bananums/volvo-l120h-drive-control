@@ -8,6 +8,7 @@ static NannersFrame frame = {
     .state = WAIT_FOR_SOF,
     .frame_id = 0,
     .length = 0,
+    .payload = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
     .crc = 0,
     .index = 0,
     .valid = false,
