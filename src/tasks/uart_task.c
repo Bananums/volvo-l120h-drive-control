@@ -2,12 +2,22 @@
 
 #include "uart_task.h"
 #include "nanners_protocol/nanners_protocol.h"
+#include "integration/task_data.h"
 
 void uart_read_task(void *arg) {
-    const ReadTaskParams params = *(ReadTaskParams *) arg;
-    const uart_port_t uart_num = params.uart_num;
+    const ReadTaskParams *params = (ReadTaskParams *) arg;
+    const uart_port_t uart_num = params->uart_num;
+    SharedState *shared_state = params->shared_state;
     const size_t uart_buffer_size = 64;
     uint8_t uart_buffer[uart_buffer_size];
+
+    DrivePayload drive_payload = {
+        .heartbeat = 0,
+        .steering = 0.0f,
+        .throttle = 0.0f,
+    };
+
+    float steering = 0.0f;
 
     while (1) {
         const int len = uart_read_bytes(uart_num, &uart_buffer, uart_buffer_size, pdMS_TO_TICKS(10));
@@ -25,6 +35,9 @@ void uart_read_task(void *arg) {
                 }
             }
         }
+        steering = steering + 0.025f;
+        drive_payload.steering = steering;
+        UpdateDriveState(shared_state, &drive_payload);
     }
 }
 

@@ -39,7 +39,7 @@ void StartTasks() {
     uart_driver_install(uart_port, buffer_size * 2, 0, 0, NULL, 0);
     uart_set_pin(uart_port, TX_PIN, RX_PIN, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
 
-    static SharedState shared_state; // Must be static in order to still exist when app_main() finishes
+    static SharedState shared_state; // Must be static in order to still exist for tasks when function returns
     InitSharedState(&shared_state);
 
     ReadTaskParams task_params = {

@@ -22,7 +22,7 @@ void main_task(void *arg) {
 
         ReadDriveState(shared_state, &drive_payload);
         float steering = drive_payload.steering;
-        printf("Got drive.steering %f.2\n", steering);
+        printf("Got drive.steering %f\n", steering);
 
         if (xQueueSend(queue, &byte, portMAX_DELAY) == pdTRUE) {  //TODO look into portMAX_DELAY
             printf("Sending to queue: byte %d\n", byte);
