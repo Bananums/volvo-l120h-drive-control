@@ -10,13 +10,11 @@
 typedef struct {
     uart_port_t uart_num;
     size_t buffer_size;
-    QueueHandle_t queue;
 } ReadTaskParams;
 
 // Struct for passing parameters to uart_write_task
 typedef struct {
     uart_port_t uart_port;
-    uint8_t test;
     QueueHandle_t queue;
 } WriteTaskParams;
 

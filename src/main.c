@@ -5,15 +5,15 @@
 #include "freertos/task.h"
 #include "memory.h"
 
-#include "nanners_protocol/nanners_protocol.h"
-#include "integration/enums.h"
-#include "integration/types.h"
+#include "utils/startup_checks.h"  //Used for compile time asserts. Even though it is informed to not be in use.
 
 #include "config_io.h"
+#include "nanners_protocol/nanners_protocol.h"
 #include "tasks/main_task.h"
 #include "tasks/uart_task.h"
 
-void startup_led_blink() {
+void StartupLedBlink() {
+    gpio_config(&ONBOARD_LED_GPIO_CONF);
     bool led_on = true;
     for (int i = 0; i < 10; i++) {
         gpio_set_level(kLedPin, led_on);
@@ -23,38 +23,24 @@ void startup_led_blink() {
     gpio_set_level(kLedPin, false);
 }
 
-void app_main() {
-    static_assert(sizeof(DrivePayload) <= kMaxPayloadSize, "DrivePayload too large!");
-    static_assert(sizeof(ToolPayload) <= kMaxPayloadSize, "ToolPayload too large!");
-    static_assert(sizeof(FunctionPayload) <= kMaxPayloadSize, "FunctionPayload too large!");
-    static_assert(sizeof(FeedbackPayload) <= kMaxPayloadSize, "FeedbackPayload too large!");
-
+void StartTasks() {
     const uart_port_t uart_port = UART_NUM_2;
     const gpio_num_t TX_PIN = GPIO_NUM_17;
     const gpio_num_t RX_PIN = GPIO_NUM_16;
     const int16_t buffer_size = 1024;
-
-    // Configure GPIO
-    gpio_config(&ONBOARD_LED_GPIO_CONF);
-
+    QueueHandle_t x_queue = xQueueCreate(10, sizeof(uint8_t));
     // Configure UART
     uart_param_config(uart_port, &UART_CONF);
     uart_driver_install(uart_port, buffer_size * 2, 0, 0, NULL, 0);
     uart_set_pin(uart_port, TX_PIN, RX_PIN, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
 
-    startup_led_blink();
-
-    QueueHandle_t x_queue = xQueueCreate(10, sizeof(uint8_t));
-
     ReadTaskParams task_params = {
         .uart_num = uart_port,
         .buffer_size = buffer_size,
-        //.queue = x_queue
     };
 
     WriteTaskParams write_task_params = {
         .uart_port = uart_port,
-        .test = 200,
         .queue = x_queue
     };
 
@@ -62,9 +48,12 @@ void app_main() {
         .queue = x_queue
     };
 
-
-    printf("UART listening on GPIO RX=%d TX=%d...\n", RX_PIN, TX_PIN);
     xTaskCreate(main_task, "main_task", 4096, &main_task_params, 2, NULL);
     xTaskCreate(uart_read_task, "UART_RX_Task", 4096, &task_params, 5, NULL);
     xTaskCreate(uart_write_task, "UART_TX_Task", 4096, &write_task_params, 5, NULL);
+}
+
+void app_main() {
+    StartupLedBlink();
+    StartTasks();
 }
