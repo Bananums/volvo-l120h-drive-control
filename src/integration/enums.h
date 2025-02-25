@@ -6,9 +6,9 @@
 #include <stdint.h>
 
 typedef enum {
-    FRAME_DRIVE    = 1001,
-    FRAME_TOOL     = 1002,
-    FRAME_FUNCTION = 1003
-} FrameID;
+    kFrameDrive    = 1001,
+    kFrameTool     = 1002,
+    kFrameFunction = 1003
+} FrameId;
 
 #endif //ENUMS_H

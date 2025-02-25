@@ -1,8 +1,11 @@
 //Created by Bananums: https://github.com/Bananums
 
-#include "uart_task.h"
-#include "nanners_protocol/nanners_protocol.h"
+#include "tasks/uart_task.h"
+
+#include <string.h>
+
 #include "integration/task_data.h"
+#include "integration/enums.h"
 
 void uart_read_task(void *arg) {
     const ReadTaskParams *params = (ReadTaskParams *) arg;
@@ -11,33 +14,47 @@ void uart_read_task(void *arg) {
     const size_t uart_buffer_size = 64;
     uint8_t uart_buffer[uart_buffer_size];
 
-    DrivePayload drive_payload = {
-        .heartbeat = 0,
-        .steering = 0.0f,
-        .throttle = 0.0f,
-    };
-
-    float steering = 0.0f;
-
     while (1) {
         const int len = uart_read_bytes(uart_num, &uart_buffer, uart_buffer_size, pdMS_TO_TICKS(10));
         if (len > 0) {
             printf("Received %d bytes\n", len);
             for (int i = 0; i < len; i++) {
-
                 //Apparently declaration of primitives inside of loop has no performance affect.
                 const uint8_t byte = uart_buffer[i];
                 NannersProcessBytes(byte);
                 NannersFrame frame;
                 if (NannersGetFrame(&frame)) {
                     printf("Frame Ready for processing\n");
-                    //ProcessMessage(frame.frame_id, frame.payload, frame.length);
+                    ProcessMessage(shared_state, &frame);
                 }
             }
         }
-        steering = steering + 0.025f;  //TODO implement actual use in ProcessMessage
-        drive_payload.steering = steering;
-        UpdateDriveState(shared_state, &drive_payload);
+    }
+}
+
+void ProcessMessage(SharedState *shared_state, const NannersFrame *nanners_frame) {
+    switch (nanners_frame->frame_id) {
+        case kFrameDrive: {
+            DrivePayload drive_payload;
+            memcpy(&drive_payload, nanners_frame->payload, sizeof(drive_payload));
+            UpdateDriveState(shared_state, &drive_payload);
+            break;
+        }
+        case kFrameTool: {
+            ToolPayload tool_payload;
+            memcpy(&tool_payload, nanners_frame->payload, sizeof(tool_payload));
+            UpdateToolState(shared_state, &tool_payload);
+            break;
+        }
+        case kFrameFunction: {
+            FunctionPayload function_payload;
+            memcpy(&function_payload, nanners_frame->payload, sizeof(function_payload));
+            UpdateFunction(shared_state, &function_payload);
+            break;
+        }
+        default: {
+            break;
+        }
     }
 }
 
