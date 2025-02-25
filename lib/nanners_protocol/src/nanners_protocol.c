@@ -15,7 +15,7 @@ static NannersFrame frame = {
 };
 
 // Process each byte from UART
-void NannersProcessBytes(uint8_t byte) {
+void NannersProcessBytes(const uint8_t byte) {
     switch (frame.state) {
         case WAIT_FOR_SOF:
             if (byte == kStartOfFrame) { // Start of Frame
@@ -61,14 +61,14 @@ void NannersProcessBytes(uint8_t byte) {
         if (frame.index == 2) {
               printf("Received CRC %u\n", frame.crc);
             frame.state = VERIFY_EOF;
-            frame.index = 0; //TODO Check if necessray to reset here
+            frame.index = 0;
         }
         break;
 
         case VERIFY_EOF:
             if (byte == kEndOfFrame) { // End of Frame
                 printf("Received end of frame byte %02X\n", byte);
-                //if (validate_crc(frame.payload, frame.length, frame.crc)) { //TODO add check
+                //if (validate_crc(frame.payload, frame.length, frame.crc)) { //TODO add crc check
                     //printf("Valid frame\n");
                     frame.valid = true;
                 //}
