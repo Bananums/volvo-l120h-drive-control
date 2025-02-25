@@ -1,6 +1,6 @@
 //Created by Bananums: https://github.com/Bananums
 
-#include "nanners_protocol.h"
+#include "nanners_protocol/nanners_protocol.h"
 #include <string.h>
 #include <stdio.h>
 

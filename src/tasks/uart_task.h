@@ -7,8 +7,6 @@
 #include "driver/uart.h"
 #include "task_params.h"
 
-
-
 void uart_read_task(void *arg);
 void uart_write_task(void *arg);
 

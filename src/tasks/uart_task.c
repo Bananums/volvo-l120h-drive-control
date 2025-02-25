@@ -1,8 +1,9 @@
 //Created by Bananums: https://github.com/Bananums
 
 #include "uart_task.h"
-#include "nanners_protocol/nanners_protocol.h"
 #include "integration/task_data.h"
+#include "nanners_protocol/nanners_protocol.h"
+
 
 void uart_read_task(void *arg) {
     const ReadTaskParams *params = (ReadTaskParams *) arg;
