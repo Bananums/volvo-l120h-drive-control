@@ -18,7 +18,7 @@ typedef struct __attribute__((packed)) {
 } ToolPayload;
 
 typedef struct __attribute__((packed)) {
-    uint8_t function_request;
+    uint8_t function;
 } FunctionPayload;
 
 typedef struct __attribute__((packed)) {
@@ -26,6 +26,7 @@ typedef struct __attribute__((packed)) {
     float throttle;
     float tilt;
     float lift;
+    int8_t gear;
 } FeedbackPayload;
 
 typedef struct __attribute__((packed)) {
