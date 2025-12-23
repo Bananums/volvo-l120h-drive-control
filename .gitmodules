@@ -1,0 +1,4 @@
+[submodule "lib/nanners_protocol"]
+	path = lib/nanners_protocol
+	url = https://github.com/Bananums/nanners-protocol
+	branch = master

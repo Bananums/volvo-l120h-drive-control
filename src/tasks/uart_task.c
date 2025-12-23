@@ -14,6 +14,8 @@ void uart_read_task(void *arg) {
     const size_t uart_buffer_size = 64;
     uint8_t uart_buffer[uart_buffer_size];
 
+    NannersFrame frame;
+
     while (1) {
         const int len = uart_read_bytes(uart_num, &uart_buffer, uart_buffer_size, pdMS_TO_TICKS(10));
         if (len > 0) {
@@ -21,9 +23,9 @@ void uart_read_task(void *arg) {
             for (int i = 0; i < len; i++) {
                 //Apparently declaration of primitives inside of loop has no performance affect.
                 const uint8_t byte = uart_buffer[i];
-                NannersProcessBytes(byte);
-                NannersFrame frame;
-                if (NannersGetFrame(&frame)) {
+                const NannersResult result = NannersProcessByte(&frame, byte, NULL);
+
+                if (result == NANNERS_FRAME_READY) {
                     printf("Frame Ready for processing\n");
                     ProcessMessage(shared_state, &frame);
                 }

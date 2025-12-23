@@ -5,7 +5,7 @@
 
 #include <stdint.h>
 
-typedef struct __attribute__((packed)) {
+typedef struct {
     uint8_t heartbeat;
     float steering;
     float throttle;

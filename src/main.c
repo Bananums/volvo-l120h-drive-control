@@ -8,7 +8,7 @@
 #include "utils/startup_checks.h"  //Used for compile time asserts. Even though it is informed to not be in use.
 
 #include "config_io.h"
-#include "nanners_protocol/nanners_protocol.h"
+#include "nanners/nanners.h"
 #include "tasks/main_task.h"
 #include "tasks/uart_task.h"
 
